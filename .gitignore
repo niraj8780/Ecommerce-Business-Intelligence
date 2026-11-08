@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.venv/
+venv/
+ENV/
+
+# Large Datasets & SQLite Databases
+data/raw/*.csv
+data/processed/*.csv
+data/processed/*.parquet
+data/processed/*.db
+
+# Keep folder structure intact
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Jupyter & Streamlit Cache
+.ipynb_checkpoints/
+.streamlit/
+*.log
+
+# OS Specific
+.DS_Store
+Thumbs.db
