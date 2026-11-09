@@ -5,8 +5,6 @@ Generates clean, interactive Plotly charts and publication-ready Matplotlib figu
 
 import plotly.express as px
 import plotly.graph_objects as go
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 def plot_monthly_revenue_trend(monthly_df):
     """Interactive line chart of monthly revenue with MoM growth."""
