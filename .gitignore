@@ -1,27 +1,67 @@
-# Python
+# Environment variables and secrets
+.env
+.env.*
+*.secret
+*.key
+*.token
+*.pem
+
+# Python artifacts
 __pycache__/
 *.py[cod]
 *$py.class
-*.env
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
 .venv/
 venv/
 ENV/
+env/
 
-# Large Datasets & SQLite Databases
-data/raw/*.csv
-data/processed/*.csv
-data/processed/*.parquet
-data/processed/*.db
+# Databases, spreadsheets and data files
+*.db
+*.sqlite
+*.sqlite3
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.parquet
 
-# Keep folder structure intact
+# Explicitly keep folder structure
 !data/raw/.gitkeep
 !data/processed/.gitkeep
+!screenshots/.gitkeep
+!data/processed/metadata.json
 
-# Jupyter & Streamlit Cache
+# Cache and logs
 .ipynb_checkpoints/
 .streamlit/
 *.log
 
-# OS Specific
+# OS generated files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db

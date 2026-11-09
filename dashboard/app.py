@@ -38,8 +38,7 @@ from src.visualization import (
 )
 
 st.set_page_config(
-    page_title="E-Commerce Business & Customer Intelligence",
-    page_icon="📊",
+    page_title="E-Commerce Business and Customer Intelligence",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -208,15 +207,14 @@ except Exception as e:
     df_raw = get_data()
 
 # Sidebar Filters
-st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081559.png", width=60)
-st.sidebar.title("Filters & Settings")
+st.sidebar.title("Filters and Settings")
 
 # --- FILE UPLOADER (PROMINENT & DIRECT) ---
-st.sidebar.subheader("📤 Upload Custom Dataset")
+st.sidebar.subheader("Upload Custom Dataset")
 custom_file = st.sidebar.file_uploader(
-    "Upload your own CSV or Excel:",
+    "Upload CSV or Excel file:",
     type=["csv", "xlsx", "xls"],
-    help="Upload any sales or e-commerce dataset to analyze your own business metrics immediately."
+    help="Upload any sales or e-commerce dataset to analyze your business metrics."
 )
 
 is_custom = False
@@ -225,10 +223,10 @@ if custom_file is not None:
     if df_uploaded is not None and len(df_uploaded) > 0:
         df_raw = df_uploaded
         is_custom = True
-        st.sidebar.success(f"✅ Loaded: {custom_file.name} ({len(df_raw):,} records)")
+        st.sidebar.success(f"Loaded: {custom_file.name} ({len(df_raw):,} records)")
 
 # --- DATA SOURCE & SWITCHER ---
-with st.sidebar.expander("⚙️ Dataset Switcher & Kaggle Ingestion", expanded=False):
+with st.sidebar.expander("Dataset Switcher and Ingestion", expanded=False):
     meta = get_metadata()
     active_source = f"Custom: {custom_file.name}" if is_custom else meta.get('source', 'Benchmark Simulation')
     st.caption(f"**Current Data:** {active_source}")
@@ -248,28 +246,28 @@ with st.sidebar.expander("⚙️ Dataset Switcher & Kaggle Ingestion", expanded=
             options=[2000, 5000, 10000, 20000],
             value=5000
         )
-        if st.button("🔄 Generate & Switch Data", use_container_width=True):
+        if st.button("Generate and Switch Data", use_container_width=True):
             with st.spinner("Generating fresh e-commerce dataset..."):
                 generate_synthetic_olist_data(n_orders=new_order_size, seed=None)
                 st.cache_data.clear()
-                st.success("New data active!")
+                st.success("New dataset active.")
                 st.rerun()
                 
     elif data_mode == "Load Kaggle CSVs":
         if check_raw_files_available():
-            st.success("✅ Real Kaggle CSVs found in `data/raw/`!")
-            if st.button("📥 Ingest Kaggle CSVs into SQL", use_container_width=True):
-                with st.spinner("Ingesting Kaggle CSVs into SQLite..."):
+            st.success("Real Kaggle CSV files detected in data/raw/.")
+            if st.button("Ingest Kaggle CSVs into Database", use_container_width=True):
+                with st.spinner("Ingesting Kaggle CSVs into database..."):
                     load_kaggle_csvs_into_db()
                     st.cache_data.clear()
-                    st.success("Kaggle database active!")
+                    st.success("Kaggle database active.")
                     st.rerun()
         else:
             st.info("To use the 100K+ Kaggle dataset:")
             st.markdown(
-                "1. [Download Olist from Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)\n"
-                "2. Extract CSV files into `data/raw/`\n"
-                "3. Click this button to ingest!"
+                "1. Download Olist dataset from Kaggle\n"
+                "2. Place extracted CSV files into `data/raw/`\n"
+                "3. Click this button to ingest."
             )
 
 st.sidebar.markdown("---")
@@ -301,21 +299,21 @@ if isinstance(date_range, (tuple, list)) and len(date_range) == 2:
     ]
 
 if is_custom:
-    st.info(f"📊 **Active Custom Dataset:** `{custom_file.name}` ({len(df_raw):,} records loaded). All metrics below reflect your uploaded data.")
+    st.info(f"**Active Custom Dataset:** `{custom_file.name}` ({len(df_raw):,} records loaded). All metrics below reflect your uploaded data.")
 
 # Navigation Tabs
 tabs = st.tabs([
-    "📈 1. Overview",
-    "💰 2. Sales Analysis",
-    "👥 3. Customer & RFM",
-    "📦 4. Product Analytics",
-    "🚚 5. Logistics & Delivery",
-    "💡 6. Business Insights"
+    "1. Overview",
+    "2. Sales Analysis",
+    "3. Customer and RFM",
+    "4. Product Analytics",
+    "5. Logistics and Delivery",
+    "6. Business Insights"
 ])
 
 # ----------------- TAB 1: OVERVIEW -----------------
 with tabs[0]:
-    st.markdown('<div class="main-header">Executive Overview & Key Performance Indicators</div>', unsafe_allow_html=True)
+    st.markdown('<div class="main-header">Executive Overview and Key Performance Indicators</div>', unsafe_allow_html=True)
     st.markdown('<div class="sub-header">Holistic snapshot of business health, transaction volume, and operational efficiency</div>', unsafe_allow_html=True)
 
     kpis = calculate_sales_kpis(filtered_df)
@@ -505,7 +503,7 @@ with tabs[5]:
     st.markdown('<div class="main-header">Strategic Business Insights & Recommendations</div>', unsafe_allow_html=True)
     
     st.markdown("""
-    ### 🎯 Key Findings & Strategic Takeaways
+    ### Key Findings and Strategic Takeaways
 
     #### 1. Customer Retention & Repeat Purchase Gap
     * **Observation:** The repeat purchase rate sits at **~10-15%**, indicating high customer acquisition churn.

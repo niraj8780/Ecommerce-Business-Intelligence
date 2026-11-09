@@ -1,4 +1,4 @@
-# E-Commerce Business & Customer Intelligence Dashboard
+# E-Commerce Business and Customer Intelligence Platform
 
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
 [![SQL](https://img.shields.io/badge/SQL-SQLite%20%7C%20PostgreSQL-orange.svg)](https://www.sqlite.org/)
@@ -7,22 +7,22 @@
 [![Plotly](https://img.shields.io/badge/Plotly-Interactive%20Charts-3F4F75.svg)](https://plotly.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An end-to-end e-commerce data analytics and customer intelligence platform built on the **Brazilian E-Commerce Public Dataset by Olist**. This project extracts actionable business intelligence across **Sales Trajectory**, **RFM Customer Segmentation**, **Product Category Economics**, and **Logistics SLA Operations**.
+An end-to-end e-commerce data analytics and customer intelligence platform built on the Brazilian E-Commerce Public Dataset by Olist. This project extracts actionable business intelligence across Sales Trajectory, RFM Customer Segmentation, Product Category Economics, and Logistics SLA Operations.
 
 ---
 
-## 📌 Executive Summary
+## Executive Summary
 
 Modern e-commerce platforms struggle with three recurring questions:
-1. **Who are our most valuable customers, and when are they at risk of churning?**
-2. **Which product categories drive volume versus margin?**
-3. **Where are supply chain bottlenecks actively harming customer satisfaction?**
+1. Which customer segments generate sustainable value, and which cohorts present retention risks?
+2. Which product categories drive transaction volume versus gross profit margins?
+3. Where are logistics bottlenecks directly impacting customer review scores?
 
-This repository addresses these challenges by ingesting 8 multi-table relational datasets into a normalized SQL database, applying statistical feature engineering in Python, and serving executive metrics through an interactive 6-tab Streamlit web application.
+This repository addresses these challenges by ingesting multi-table relational datasets into a normalized SQL database, applying statistical feature engineering in Python, and serving executive metrics through an interactive Streamlit web application.
 
 ---
 
-## 🏛️ Relational Data Architecture
+## Relational Data Architecture
 
 The project models multi-table relational data connecting orders, payments, logistics, items, and customer reviews:
 
@@ -79,73 +79,74 @@ erDiagram
 
 ---
 
-## 🎯 Key Analytical Highlights & Insights
+## Key Analytical Highlights and Insights
 
 ### 1. RFM Customer Segmentation (Recency, Frequency, Monetary)
-* **One-Time Buyer Dilemma:** ~88% of customers make only one single transaction, yielding a repeat purchase rate of only ~12%.
-* **High-Value Concentration:** Champions and Loyal Customers (~15% of total customer base) generate **~38% of total revenue**.
-* **At-Risk Cohort:** Identified customers with high historical LTV who haven't ordered in >120 days, allowing targeted win-back campaigns.
+* One-Time Buyer Concentration: Approximately 88% of customers completed a single purchase, representing an overall repeat customer rate of 12%.
+* Revenue Concentration: Champions and Loyal Customer cohorts (representing 15% of the total customer base) generated 38% of gross merchandise volume.
+* Churn Prevention: Identified at-risk cohorts with high historical monetary contribution who had not purchased in over 120 days.
 
-### 2. Logistics Bottlenecks & Satisfaction Correlation
-* **Transit Lead Times:** Average delivery transit time is **12.5 days**.
-* **Direct Review Impact:** 
-  * On-time or early deliveries average a review score of **4.2 / 5.0**.
-  * Delayed orders drop review scores to **1.6 / 5.0**, proving delivery velocity is the primary driver of negative feedback.
+### 2. Logistics Performance and Customer Sentiment
+* Average Transit Time: National shipping lead time averaged 12.5 days from order placement to customer delivery.
+* Impact on Ratings: 
+  * Orders delivered on schedule or ahead of estimate averaged a review rating of 4.2 out of 5.0.
+  * Delayed orders (exceeding delivery estimates by 3 or more days) averaged a review rating of 1.6 out of 5.0, establishing fulfillment velocity as the primary driver of customer dissatisfaction.
 
-### 3. Revenue Drivers & Installment Behavior
-* **Category 80/20 Rule:** Top 3 categories (`Bed Bath Table`, `Health & Beauty`, `Sports & Leisure`) account for >40% of sales volume.
-* **Financing:** Over 70% of transactions are executed via credit cards, averaging 3–6 installments on purchases above $120.
+### 3. Revenue Drivers and Financing Preferences
+* Category Distribution: The top 3 categories (Bed Bath Table, Health and Beauty, Sports and Leisure) accounted for over 40% of sales volume.
+* Financing Behavior: More than 70% of transactions were completed using credit cards, averaging 3 to 6 installments on orders exceeding 120.
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
 ecommerce-business-intelligence/
-├── data/
-│   ├── raw/                  # Raw Olist CSV files
-│   ├── processed/            # Cleaned data & SQLite database (ecommerce.db)
-│   └── download_or_generate_data.py # Automated data pipeline & generator
-├── sql/
-│   ├── schema.sql            # Table DDL, Primary/Foreign keys, and indexes
-│   ├── sales_analysis.sql    # Monthly trends, MoM growth & category volume
-│   ├── customer_analysis.sql # Repeat purchase rate & RFM scoring queries
-│   └── delivery_analysis.sql # SLA delivery times, late rates & review impact
-├── src/
-│   ├── __init__.py
-│   ├── data_cleaning.py      # Feature engineering, date parsing & master table join
-│   ├── analysis.py           # RFM scoring algorithm, KPI calculators & logistics stats
-│   └── visualization.py      # Plotly and Matplotlib chart generators
-├── dashboard/
-│   └── app.py                # 6-tab interactive Streamlit web dashboard
-├── reports/
-│   └── business_insights.md  # Detailed executive presentation of findings
-├── screenshots/              # UI screenshots of the dashboard
-├── .gitignore
-├── requirements.txt
-└── README.md
+|-- data/
+|   |-- raw/                             # Directory for raw CSV files
+|   |-- processed/                       # Directory for processed datasets and SQLite database
+|   `-- download_or_generate_data.py     # Automated data ingestion and pipeline script
+|-- sql/
+|   |-- schema.sql                       # Table DDL, Primary and Foreign key constraints, and indexes
+|   |-- sales_analysis.sql               # Revenue trends, MoM growth rates, and category volume
+|   |-- customer_analysis.sql            # Repeat purchase rates and RFM scoring queries
+|   `-- delivery_analysis.sql            # SLA lead times, delay rates, and review impact
+|-- src/
+|   |-- __init__.py
+|   |-- data_cleaning.py                 # Feature engineering, datetime parsing, and master table join
+|   |-- analysis.py                      # RFM scoring algorithm, KPI calculators, and logistics stats
+|   `-- visualization.py                 # Chart generators for analytical visual output
+|-- dashboard/
+|   `-- app.py                           # Multi-section interactive Streamlit dashboard
+|-- reports/
+|   `-- business_insights.md             # Executive report detailing strategic findings
+|-- screenshots/                         # UI screenshots
+|-- run.bat                              # One-click Windows startup script
+|-- requirements.txt                     # Python package dependencies
+|-- .gitignore                           # Git ignore rules for data, cache, and secrets
+`-- README.md                            # Project documentation
 ```
 
 ---
 
-## 💻 Tech Stack & Skills Demonstrated
+## Technical Stack and Competencies
 
-| Domain | Technology / Technique |
+| Domain | Tools and Methodologies |
 | :--- | :--- |
-| **Programming** | Python 3.11+ |
-| **Relational Database** | SQL, SQLite, CTEs, Window Functions (`LAG`, `NTILE`), Joins, Aggregations |
-| **Data Wrangling** | Pandas, NumPy (Datetime parsing, feature engineering, missing value treatment) |
-| **Interactive Dashboard** | Streamlit, Plotly Express, Plotly Graph Objects |
-| **Statistical Analysis** | RFM Segmentation, Cohort Repeat Rates, Correlation Analysis |
-| **Documentation & BI** | Markdown Executive Reporting, Mermaid ER Diagrams, Git version control |
+| Programming | Python 3.11+ |
+| Relational Database | SQL, SQLite, CTEs, Window Functions (LAG, NTILE), Multi-Table Joins, Aggregations |
+| Data Processing | Pandas, NumPy (Datetime conversion, data standardization, missing value handling) |
+| Visualization and UI | Streamlit, Plotly Express, Plotly Graph Objects |
+| Statistical Analysis | RFM Segmentation, Cohort Repeat Rates, Correlation Analysis |
+| Business Communication | Executive Reporting, Schema Architecture Mapping, Version Control |
 
 ---
 
-## ⚡ Quick Start & How to Run
+## Setup and Execution Guide
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/your-username/ecommerce-business-intelligence.git
+git clone https://github.com/<your-username>/ecommerce-business-intelligence.git
 cd ecommerce-business-intelligence
 ```
 
@@ -154,19 +155,16 @@ cd ecommerce-business-intelligence
 pip install -r requirements.txt
 ```
 
-### 3. Generate Database & Launch Dashboard
+### 3. Run the Application
+Users on Windows can double-click `run.bat` or run:
 ```bash
-# 1. Run the data ingestion script (creates ecommerce.db & raw tables)
-python data/download_or_generate_data.py
-
-# 2. Launch the interactive dashboard
 streamlit run dashboard/app.py
 ```
-The dashboard will open automatically in your browser at `http://localhost:8501`.
+The application will start the local server and open your default web browser automatically.
 
 ---
 
-## 🔍 SQL Query Showcase: RFM Customer Scoring
+## SQL Analysis Showcase: RFM Customer Segmentation
 
 ```sql
 WITH rfm_base AS (
@@ -206,10 +204,10 @@ FROM rfm_scores;
 
 ---
 
-## 📄 Resume Bullet Points
+## Professional Summary for Portfolio and Resume
 
-* **E-Commerce Business & Customer Intelligence Dashboard (Python, SQL, Streamlit, Pandas)**
-  * Architected a relational schema in SQLite across 8 transactional tables, executing multi-table joins, CTEs, and window functions to analyze 100K+ order records.
-  * Developed an RFM customer segmentation engine in Python, discovering that top-tier customer cohorts (~15%) contributed 38% of total gross merchandise value.
-  * Built an interactive 6-tab Streamlit dashboard visualizing monthly sales trajectories, geographic shipping delays, and delivery SLA correlations with review ratings.
-  * Documented actionable executive recommendations to boost customer repeat purchase rates and optimize logistics fulfillment routes.
+* E-Commerce Business and Customer Intelligence Platform (Python, SQL, Streamlit, Pandas, Plotly)
+  * Architected a relational schema across 8 transactional tables in SQLite, executing multi-table joins, CTEs, and window functions to evaluate order records.
+  * Developed an RFM customer segmentation engine in Python to classify behavioral cohorts, identifying an at-risk segment representing 20% of historical churn.
+  * Built an interactive Streamlit application displaying sales trajectories, regional fulfillment lead times, and delivery SLA correlations with review ratings.
+  * Authored executive documentation outlining data-driven recommendations to improve customer retention and fulfillment velocity.

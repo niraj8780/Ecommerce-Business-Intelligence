@@ -1,32 +1,31 @@
 @echo off
-title E-Commerce Business Intelligence & Customer Analytics Dashboard
+title E-Commerce Business Intelligence Platform
 echo =================================================================
-echo   Starting E-Commerce Business & Customer Intelligence Platform
+echo   Starting E-Commerce Business and Customer Intelligence Platform
 echo =================================================================
 echo.
 
 :: 1. Check Python installation
 python --version >nul 2>&1
 if errorlevel 1 (
-    echo [ERROR] Python is not found in your PATH. Please install Python 3.10+ and try again.
+    echo [ERROR] Python was not detected in your PATH. Please install Python 3.10+ and re-run.
     pause
     exit /b 1
 )
 
 :: 2. Check and install dependencies
-echo [*] Checking and verifying dependencies...
+echo [*] Verifying project dependencies...
 python -m pip install -r requirements.txt --quiet --disable-pip-version-check
 
 :: 3. Check and initialize database if needed
 if not exist "data\processed\ecommerce.db" (
-    echo [*] Initializing database and generating sample data...
+    echo [*] Initializing local database...
     python data\download_or_generate_data.py
 )
 
 :: 4. Launch Streamlit Dashboard
 echo.
-echo [*] Launching interactive dashboard...
-echo [*] Your browser will open automatically at http://localhost:8501
+echo [*] Starting dashboard application...
 echo.
 streamlit run dashboard\app.py
 
