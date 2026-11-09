@@ -68,6 +68,128 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def process_custom_uploaded_file(uploaded_file):
+    """
+    Parses and standardizes any user-uploaded CSV or Excel file,
+    flexibly mapping existing columns or imputing defaults.
+    """
+    try:
+        if uploaded_file.name.endswith(".csv"):
+            df = pd.read_csv(uploaded_file)
+        else:
+            df = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.sidebar.error(f"Error reading file: {e}")
+        return None
+
+    lower_cols = {str(c).lower().strip(): c for c in df.columns}
+    col_map = {}
+
+    # 1. Order ID mapping
+    for target in ["order_id", "transaction_id", "id", "order_number", "invoice_no", "order id"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "order_id"
+            break
+    if "order_id" not in col_map.values():
+        df["order_id"] = [f"custom_ord_{i+1:05d}" for i in range(len(df))]
+
+    # 2. Customer ID mapping
+    for target in ["customer_unique_id", "customer_id", "user_id", "client_id", "customer", "customer name", "client"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "customer_unique_id"
+            break
+    if "customer_unique_id" not in col_map.values():
+        df["customer_unique_id"] = [f"custom_user_{(i % max(1, len(df)//3)) + 1:04d}" for i in range(len(df))]
+
+    # 3. Date mapping
+    date_found = False
+    for target in ["order_purchase_timestamp", "order_date", "date", "purchase_date", "timestamp", "created_at", "invoice_date", "time"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "order_purchase_timestamp"
+            date_found = True
+            break
+
+    # 4. Price / Revenue mapping
+    for target in ["price", "total", "revenue", "sales", "amount", "order_value", "payment_value", "subtotal"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "price"
+            break
+
+    # 5. Category mapping
+    for target in ["product_category_name", "category", "category_name", "product_category", "type", "department", "item_category"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "product_category_name"
+            break
+
+    # 6. State / Region mapping
+    for target in ["customer_state", "state", "region", "province", "country", "location", "territory"]:
+        if target in lower_cols:
+            col_map[lower_cols[target]] = "customer_state"
+            break
+
+    # Apply column renames
+    df = df.rename(columns=col_map)
+
+    # Coerce price and freight
+    if "price" not in df.columns:
+        df["price"] = 75.0
+    else:
+        df["price"] = pd.to_numeric(df["price"], errors="coerce").fillna(75.0)
+
+    if "freight_value" not in df.columns:
+        df["freight_value"] = (df["price"] * 0.12).round(2)
+    else:
+        df["freight_value"] = pd.to_numeric(df["freight_value"], errors="coerce").fillna(10.0)
+
+    df["total_item_value"] = df["price"] + df["freight_value"]
+
+    # Datetime handling
+    if not date_found or "order_purchase_timestamp" not in df.columns:
+        df["order_purchase_timestamp"] = pd.date_range(end=pd.Timestamp.now(), periods=len(df), freq="h")
+    else:
+        df["order_purchase_timestamp"] = pd.to_datetime(df["order_purchase_timestamp"], errors="coerce")
+        df["order_purchase_timestamp"] = df["order_purchase_timestamp"].fillna(pd.Timestamp.now())
+
+    df["purchase_year_month"] = df["order_purchase_timestamp"].dt.to_period("M").astype(str)
+    df["purchase_date"] = df["order_purchase_timestamp"].dt.date
+    df["purchase_day_name"] = df["order_purchase_timestamp"].dt.day_name()
+    df["purchase_hour"] = df["order_purchase_timestamp"].dt.hour
+
+    if "product_category_name" not in df.columns:
+        df["product_category_name"] = "General Products"
+    df["category_clean"] = df["product_category_name"].astype(str).str.replace("_", " ").str.title()
+
+    if "customer_state" not in df.columns:
+        df["customer_state"] = "Global"
+    df["customer_state"] = df["customer_state"].fillna("Global").astype(str)
+
+    if "order_status" not in df.columns:
+        df["order_status"] = "delivered"
+
+    if "order_item_id" not in df.columns:
+        df["order_item_id"] = 1
+
+    if "customer_city" not in df.columns:
+        df["customer_city"] = "City Center"
+
+    if "payment_type" not in df.columns:
+        df["payment_type"] = "credit_card"
+
+    if "payment_value" not in df.columns:
+        df["payment_value"] = df["total_item_value"]
+
+    if "review_score" not in df.columns:
+        df["review_score"] = 5
+
+    if "delivery_duration_days" not in df.columns:
+        df["delivery_duration_days"] = 6.5
+    if "is_late" not in df.columns:
+        df["is_late"] = 0
+    if "days_delayed" not in df.columns:
+        df["days_delayed"] = 0.0
+
+    return df
+
 @st.cache_data(show_spinner="Loading and processing analytics dataset...")
 def get_data():
     db_path = os.path.join(root_dir, "data", "processed", "ecommerce.db")
@@ -89,11 +211,28 @@ except Exception as e:
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081559.png", width=60)
 st.sidebar.title("Filters & Settings")
 
+# --- FILE UPLOADER (PROMINENT & DIRECT) ---
+st.sidebar.subheader("📤 Upload Custom Dataset")
+custom_file = st.sidebar.file_uploader(
+    "Upload your own CSV or Excel:",
+    type=["csv", "xlsx", "xls"],
+    help="Upload any sales or e-commerce dataset to analyze your own business metrics immediately."
+)
+
+is_custom = False
+if custom_file is not None:
+    df_uploaded = process_custom_uploaded_file(custom_file)
+    if df_uploaded is not None and len(df_uploaded) > 0:
+        df_raw = df_uploaded
+        is_custom = True
+        st.sidebar.success(f"✅ Loaded: {custom_file.name} ({len(df_raw):,} records)")
+
 # --- DATA SOURCE & SWITCHER ---
-with st.sidebar.expander("📁 Data Source & Switcher", expanded=False):
+with st.sidebar.expander("⚙️ Dataset Switcher & Kaggle Ingestion", expanded=False):
     meta = get_metadata()
-    st.caption(f"**Current Data:** {meta.get('source', 'Benchmark Simulation')}")
-    st.caption(f"**Total Records:** {meta.get('order_count', len(df_raw)):,} Orders")
+    active_source = f"Custom: {custom_file.name}" if is_custom else meta.get('source', 'Benchmark Simulation')
+    st.caption(f"**Current Data:** {active_source}")
+    st.caption(f"**Total Records:** {len(df_raw):,} Orders")
     st.caption(f"**Last Sync:** {meta.get('last_updated', 'Active')}")
     st.markdown("---")
     
@@ -160,6 +299,9 @@ if isinstance(date_range, (tuple, list)) and len(date_range) == 2:
         (filtered_df["order_purchase_timestamp"].dt.date >= start_d) &
         (filtered_df["order_purchase_timestamp"].dt.date <= end_d)
     ]
+
+if is_custom:
+    st.info(f"📊 **Active Custom Dataset:** `{custom_file.name}` ({len(df_raw):,} records loaded). All metrics below reflect your uploaded data.")
 
 # Navigation Tabs
 tabs = st.tabs([
