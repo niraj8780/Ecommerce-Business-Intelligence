@@ -17,6 +17,12 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 root_dir = os.path.dirname(current_dir)
 sys.path.append(root_dir)
 
+from data.download_or_generate_data import (
+    get_metadata,
+    generate_synthetic_olist_data,
+    load_kaggle_csvs_into_db,
+    check_raw_files_available
+)
 from src.data_cleaning import load_clean_master_data
 from src.analysis import (
     calculate_sales_kpis,
@@ -82,6 +88,53 @@ except Exception as e:
 # Sidebar Filters
 st.sidebar.image("https://cdn-icons-png.flaticon.com/512/3081/3081559.png", width=60)
 st.sidebar.title("Filters & Settings")
+
+# --- DATA SOURCE & SWITCHER ---
+with st.sidebar.expander("📁 Data Source & Switcher", expanded=False):
+    meta = get_metadata()
+    st.caption(f"**Current Data:** {meta.get('source', 'Benchmark Simulation')}")
+    st.caption(f"**Total Records:** {meta.get('order_count', len(df_raw)):,} Orders")
+    st.caption(f"**Last Sync:** {meta.get('last_updated', 'Active')}")
+    st.markdown("---")
+    
+    data_mode = st.radio(
+        "Data Mode:",
+        ["Simulate New Scenario", "Load Kaggle CSVs"],
+        label_visibility="collapsed"
+    )
+    
+    if data_mode == "Simulate New Scenario":
+        new_order_size = st.select_slider(
+            "Scenario Size (Orders):",
+            options=[2000, 5000, 10000, 20000],
+            value=5000
+        )
+        if st.button("🔄 Generate & Switch Data", use_container_width=True):
+            with st.spinner("Generating fresh e-commerce dataset..."):
+                generate_synthetic_olist_data(n_orders=new_order_size, seed=None)
+                st.cache_data.clear()
+                st.success("New data active!")
+                st.rerun()
+                
+    elif data_mode == "Load Kaggle CSVs":
+        if check_raw_files_available():
+            st.success("✅ Real Kaggle CSVs found in `data/raw/`!")
+            if st.button("📥 Ingest Kaggle CSVs into SQL", use_container_width=True):
+                with st.spinner("Ingesting Kaggle CSVs into SQLite..."):
+                    load_kaggle_csvs_into_db()
+                    st.cache_data.clear()
+                    st.success("Kaggle database active!")
+                    st.rerun()
+        else:
+            st.info("To use the 100K+ Kaggle dataset:")
+            st.markdown(
+                "1. [Download Olist from Kaggle](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)\n"
+                "2. Extract CSV files into `data/raw/`\n"
+                "3. Click this button to ingest!"
+            )
+
+st.sidebar.markdown("---")
+st.sidebar.subheader("Dashboard Filters")
 
 all_states = ["All"] + sorted([s for s in df_raw["customer_state"].dropna().unique()])
 selected_state = st.sidebar.selectbox("Filter by Customer State:", all_states)

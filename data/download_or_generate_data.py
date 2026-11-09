@@ -2,13 +2,14 @@
 Data Downloader & Generator for E-commerce Business Intelligence Project.
 Supports:
 1. Loading existing Kaggle Olist CSVs from data/raw/
-2. Downloading via Kaggle CLI / urllib if configured
-3. Generating a high-fidelity, schema-matched Olist dataset if raw files are not yet present.
-4. Exporting to data/processed/ecommerce.db (SQLite) for direct SQL analysis.
+2. Ingesting them into data/processed/ecommerce.db (SQLite)
+3. Generating synthetic datasets with custom sizes and seeds for scenario testing
+4. Tracking dataset version / history metadata in data/processed/metadata.json
 """
 
 import os
 import sys
+import json
 import random
 import sqlite3
 import datetime
@@ -19,6 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 RAW_DIR = os.path.join(BASE_DIR, "data", "raw")
 PROCESSED_DIR = os.path.join(BASE_DIR, "data", "processed")
 DB_PATH = os.path.join(PROCESSED_DIR, "ecommerce.db")
+METADATA_PATH = os.path.join(PROCESSED_DIR, "metadata.json")
 
 os.makedirs(RAW_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
@@ -34,14 +36,77 @@ EXPECTED_FILES = [
     "olist_geolocation_dataset.csv"
 ]
 
-def check_existing_files():
+def update_metadata(source_name, order_count, customer_count):
+    meta = {
+        "source": source_name,
+        "order_count": int(order_count),
+        "customer_count": int(customer_count),
+        "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+    with open(METADATA_PATH, "w", encoding="utf-8") as f:
+        json.dump(meta, f, indent=2)
+    return meta
+
+def get_metadata():
+    if os.path.exists(METADATA_PATH):
+        try:
+            with open(METADATA_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "source": "Default Benchmark Simulation",
+        "order_count": 5000,
+        "customer_count": 2500,
+        "last_updated": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+def check_raw_files_available():
     found = [f for f in EXPECTED_FILES if os.path.exists(os.path.join(RAW_DIR, f))]
     return len(found) == len(EXPECTED_FILES)
 
-def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
-    print("Generating schema-matched Brazilian E-Commerce (Olist) dataset...")
-    random.seed(42)
-    np.random.seed(42)
+def load_kaggle_csvs_into_db():
+    """Loads raw CSV files from data/raw/ directly into SQLite."""
+    table_map = {
+        "customers": "olist_customers_dataset.csv",
+        "orders": "olist_orders_dataset.csv",
+        "order_items": "olist_order_items_dataset.csv",
+        "products": "olist_products_dataset.csv",
+        "order_payments": "olist_order_payments_dataset.csv",
+        "order_reviews": "olist_order_reviews_dataset.csv",
+        "sellers": "olist_sellers_dataset.csv",
+        "geolocation": "olist_geolocation_dataset.csv"
+    }
+    
+    conn = sqlite3.connect(DB_PATH)
+    orders_cnt = 0
+    cust_cnt = 0
+    
+    for tbl, fname in table_map.items():
+        fpath = os.path.join(RAW_DIR, fname)
+        if os.path.exists(fpath):
+            df = pd.read_csv(fpath)
+            df.to_sql(tbl, conn, if_exists="replace", index=False)
+            if tbl == "orders":
+                orders_cnt = len(df)
+            elif tbl == "customers":
+                cust_cnt = len(df)
+            print(f"Loaded {fname} -> {tbl} ({len(df)} rows)")
+    
+    conn.close()
+    update_metadata("Official Kaggle Olist Dataset", orders_cnt, cust_cnt)
+    print("Database updated with real Kaggle CSVs!")
+    return True
+
+def generate_synthetic_olist_data(n_customers=2500, n_orders=5000, seed=42, label="Synthetic Simulation"):
+    print(f"Generating Brazilian E-Commerce dataset ({n_orders} orders, seed={seed})...")
+    if seed is not None:
+        random.seed(seed)
+        np.random.seed(seed)
+    else:
+        seed = random.randint(1000, 99999)
+        random.seed(seed)
+        np.random.seed(seed)
 
     states = ["SP", "RJ", "MG", "RS", "PR", "SC", "BA", "PE", "CE", "DF"]
     cities = {
@@ -70,27 +135,22 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
         ("brinquedos", "toys")
     ]
 
-    # 1. Customers
+    # Customers
     customers_data = []
     unique_user_ids = [f"usr_{i:05d}" for i in range(int(n_customers * 0.8))]
-    
     for i in range(n_customers):
-        cust_id = f"cust_{i:06d}"
-        uniq_id = random.choice(unique_user_ids)
         st = random.choice(states)
-        city = random.choice(cities[st])
-        zip_prefix = random.randint(10000, 99999)
         customers_data.append({
-            "customer_id": cust_id,
-            "customer_unique_id": uniq_id,
-            "customer_zip_code_prefix": zip_prefix,
-            "customer_city": city,
+            "customer_id": f"cust_{i:06d}",
+            "customer_unique_id": random.choice(unique_user_ids),
+            "customer_zip_code_prefix": random.randint(10000, 99999),
+            "customer_city": random.choice(cities[st]),
             "customer_state": st
         })
     df_customers = pd.DataFrame(customers_data)
 
-    # 2. Sellers
-    n_sellers = 150
+    # Sellers
+    n_sellers = max(50, int(n_orders * 0.03))
     sellers_data = []
     for i in range(n_sellers):
         st = random.choice(states)
@@ -102,8 +162,8 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
         })
     df_sellers = pd.DataFrame(sellers_data)
 
-    # 3. Products
-    n_products = 400
+    # Products
+    n_products = max(100, int(n_orders * 0.08))
     products_data = []
     for i in range(n_products):
         cat_pt, cat_en = random.choice(categories)
@@ -120,12 +180,8 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
         })
     df_products = pd.DataFrame(products_data)
 
-    # 4. Orders, Items, Payments, Reviews
-    orders_data = []
-    items_data = []
-    payments_data = []
-    reviews_data = []
-
+    # Orders & related
+    orders_data, items_data, payments_data, reviews_data = [], [], [], []
     start_date = datetime.date(2022, 1, 1)
     end_date = datetime.date(2023, 12, 31)
     days_range = (end_date - start_date).days
@@ -145,12 +201,9 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
         )
         approved_time = purchase_time + datetime.timedelta(minutes=random.randint(15, 300))
         carrier_time = approved_time + datetime.timedelta(days=random.randint(1, 3))
-
-        # Delivery logic
         est_days = random.randint(12, 25)
         estimated_delivery = purchase_time + datetime.timedelta(days=est_days)
-        
-        # 10% chance of late delivery
+
         is_late = random.random() < 0.10
         actual_days = est_days + random.randint(1, 8) if is_late else random.randint(4, est_days - 1)
         actual_delivery = purchase_time + datetime.timedelta(days=actual_days) if order_status == "delivered" else None
@@ -166,7 +219,6 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
             "order_estimated_delivery_date": estimated_delivery.strftime("%Y-%m-%d %H:%M:%S")
         })
 
-        # Order Items (1 to 3 items)
         n_items = random.choices([1, 2, 3], weights=[0.82, 0.14, 0.04])[0]
         order_total = 0.0
         for item_seq in range(1, n_items + 1):
@@ -186,7 +238,6 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
                 "freight_value": freight
             })
 
-        # Payment
         pay_type = random.choice(payment_types)
         installments = random.choice([1, 1, 1, 2, 3, 6, 10]) if pay_type == "credit_card" else 1
         payments_data.append({
@@ -197,7 +248,6 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
             "payment_value": round(order_total, 2)
         })
 
-        # Review
         if order_status == "delivered":
             score = 1 if is_late and random.random() < 0.6 else random.choices([5, 4, 3, 2, 1], weights=[0.58, 0.20, 0.10, 0.05, 0.07])[0]
             reviews_data.append({
@@ -210,7 +260,7 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
                 "review_answer_timestamp": (actual_delivery + datetime.timedelta(days=1)).strftime("%Y-%m-%d %H:%M:%S") if actual_delivery else purchase_time.strftime("%Y-%m-%d %H:%M:%S")
             })
 
-    # 5. Geolocation
+    # Geolocation
     geo_data = []
     for st in states:
         for c in cities[st]:
@@ -228,24 +278,6 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
     df_payments = pd.DataFrame(payments_data)
     df_reviews = pd.DataFrame(reviews_data)
 
-    # Save CSVs to data/raw/
-    files_map = {
-        "olist_customers_dataset.csv": df_customers,
-        "olist_orders_dataset.csv": df_orders,
-        "olist_order_items_dataset.csv": df_items,
-        "olist_products_dataset.csv": df_products,
-        "olist_order_payments_dataset.csv": df_payments,
-        "olist_order_reviews_dataset.csv": df_reviews,
-        "olist_sellers_dataset.csv": df_sellers,
-        "olist_geolocation_dataset.csv": df_geo
-    }
-
-    for fname, df in files_map.items():
-        out_csv = os.path.join(RAW_DIR, fname)
-        df.to_csv(out_csv, index=False)
-        print(f"Saved: {fname} ({len(df)} rows)")
-
-    # Build SQLite DB in processed/
     conn = sqlite3.connect(DB_PATH)
     for table_name, df in {
         "customers": df_customers,
@@ -259,7 +291,11 @@ def generate_synthetic_olist_data(n_customers=2500, n_orders=5000):
     }.items():
         df.to_sql(table_name, conn, if_exists="replace", index=False)
     conn.close()
-    print(f"\nSQLite database populated successfully: {DB_PATH}")
+
+    source_label = f"{label} ({n_orders:,} Orders, Seed {seed})"
+    update_metadata(source_label, n_orders, n_customers)
+    print(f"Dataset generated and database updated ({source_label}).")
+    return True
 
 if __name__ == "__main__":
     generate_synthetic_olist_data()
